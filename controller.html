@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controller</title>
+</head>
+<body>
+  <script src="node_modules/socket.io-client/dist/socket.io.js"></script>
+  <h2>Events</h2>
+  <pre></pre>
+  <script>
+    const socket = io();
+    const pre = document.querySelector('pre');
+
+    function isRelevantKey(key) {
+      return ['ArrowRight', 'ArrowLeft', ' '].includes(key);
+    }
+
+    ['keydown', 'keyup'].forEach(type => {
+      window.addEventListener(type, ({key, keyCode}) => {
+        if (isRelevantKey(key)) {
+          pre.textContent = `${type}: ${key}\n` + pre.textContent
+          socket.emit('event', {type, key, keyCode});
+        }
+      });
+    });
+  </script>
+</body>
+</html>

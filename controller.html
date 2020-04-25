@@ -4,27 +4,104 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Controller</title>
+  <style>
+    .zone {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 200px;
+      height: 200px;
+    }
+
+    .fire {
+      position: absolute;
+      bottom: 50px;
+      left: 50px;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.5;
+      border-radius: 100%;
+      border: 0;
+      background: none;
+      outline: 0;
+      transition: opacity .3s ease;
+    }
+
+    .fire:before,
+    .fire:after {
+      content: "";
+      display: block;
+      width: 50px;
+      height: 50px;
+      background: red;
+      opacity: 0.5;
+      border-radius: 50%;
+      position: absolute;
+    }
+
+    .fire:after {
+      width: 100%;
+      height: 100%;
+    }
+
+    .fire:active {
+      opacity: 1;
+    }
+  </style>
 </head>
 <body>
   <script src="node_modules/socket.io-client/dist/socket.io.js"></script>
+  <script src="node_modules/nipplejs/dist/nipplejs.js"></script>
+  <div class="zone"></div>
+  <button class="fire"></button>
   <h2>Events</h2>
   <pre></pre>
   <script>
     const socket = io();
-    const pre = document.querySelector('pre');
+    const options = {
+        zone: document.querySelector('.zone'),
+        mode: 'static',
+        position: {left: '50%', top: '50%'},
+        color: 'red',
+        size: 50,
+        lockX: true,
+    };
+    const manager = nipplejs.create(options);
+    const KEY_CODES = { left: 37, right: 39, fire: 32 };
+    let lastDirection;
 
-    function isRelevantKey(key) {
-      return ['ArrowRight', 'ArrowLeft', ' '].includes(key);
+    function emit(type, keyCode) {
+      socket.emit('event', {type, keyCode})
     }
 
-    ['keydown', 'keyup'].forEach(type => {
-      window.addEventListener(type, ({key, keyCode}) => {
-        if (isRelevantKey(key)) {
-          pre.textContent = `${type}: ${key}\n` + pre.textContent
-          socket.emit('event', {type, key, keyCode});
+    manager.on('dir', (_, info) => {
+      try {
+        // info.direction && (document.querySelector('pre').textContent += info.direction.x + '\n');
+        // user ended the interaction or change the direction
+        socket.emit('log', info.direction.x);
+        if (!!lastDirection && (!info.direction || info.direction.x !== lastDirection)) {
+          emit('keyup', KEY_CODES[lastDirection]);
         }
-      });
+        lastDirection = info.direction?.x;
+        if (lastDirection) {
+          emit('keydown', KEY_CODES[lastDirection]);
+        }
+      } catch (error) {
+        document.querySelector('pre').textContent += error.message;
+      }
     });
+
+    manager.on('end', () => {
+      emit('keyup', KEY_CODES[lastDirection]);
+      lastDirection = undefined;
+    });
+
+    const fireButton = document.querySelector('.fire');
+    fireButton.addEventListener('touchstart', () => emit('keyup', KEY_CODES.fire));
+    fireButton.addEventListener('touchend', () => emit('keydown', KEY_CODES.fire));
   </script>
 </body>
 </html>

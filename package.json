@@ -3,9 +3,14 @@
     "start": "nodemon server.js"
   },
   "dependencies": {
-    "@types/express": "^4.17.6",
-    "@types/socket.io": "^2.1.4",
     "express": "4.15.2",
+    "nipplejs": "^0.8.5",
+    "serve-handler": "^6.1.2",
     "socket.io": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.6",
+    "@types/serve-handler": "^6.1.0",
+    "@types/socket.io": "^2.1.4"
   }
 }

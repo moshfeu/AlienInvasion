@@ -2,52 +2,49 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Controller</title>
   <style>
-    .zone {
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      width: 200px;
-      height: 200px;
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0;
+      height: 100vh;
+    }
+
+    div {
+      flex: 1;
+      display: flex;
+      justify-content: center;
     }
 
     .fire {
-      position: absolute;
-      bottom: 50px;
-      left: 50px;
       width: 100px;
       height: 100px;
       display: flex;
       align-items: center;
       justify-content: center;
-      opacity: 0.5;
       border-radius: 100%;
       border: 0;
-      background: none;
+      background: rgba(255, 0, 0, 0.3);
       outline: 0;
-      transition: opacity .3s ease;
+      position: relative;
     }
 
-    .fire:before,
-    .fire:after {
+    .fire:before {
       content: "";
       display: block;
       width: 50px;
       height: 50px;
       background: red;
-      opacity: 0.5;
       border-radius: 50%;
       position: absolute;
+      transition: opacity .3s ease;
+      opacity: 0.25;
     }
 
-    .fire:after {
-      width: 100%;
-      height: 100%;
-    }
-
-    .fire:active {
+    .fire:active:before {
       opacity: 1;
     }
   </style>
@@ -55,21 +52,17 @@
 <body>
   <script src="node_modules/socket.io-client/dist/socket.io.js"></script>
   <script src="node_modules/nipplejs/dist/nipplejs.js"></script>
-  <div class="zone"></div>
-  <button class="fire"></button>
-  <h2>Events</h2>
+  <script src="node_modules/jjoystick/index.js"></script>
+  <div>
+    <button class="fire"></button>
+  </div>
+  <div>
+    <j-joystick></j-joystick>
+  </div>
   <pre></pre>
   <script>
     const socket = io();
-    const options = {
-        zone: document.querySelector('.zone'),
-        mode: 'static',
-        position: {left: '50%', top: '50%'},
-        color: 'red',
-        size: 50,
-        lockX: true,
-    };
-    const manager = nipplejs.create(options);
+
     const KEY_CODES = { left: 37, right: 39, fire: 32 };
     let lastDirection;
 
@@ -77,15 +70,14 @@
       socket.emit('event', {type, keyCode})
     }
 
-    manager.on('dir', (_, info) => {
+    const joystick = document.querySelector('j-joystick');
+    joystick.addEventListener('dir', ({detail: direction}) => {
       try {
-        // info.direction && (document.querySelector('pre').textContent += info.direction.x + '\n');
         // user ended the interaction or change the direction
-        socket.emit('log', info.direction.x);
-        if (!!lastDirection && (!info.direction || info.direction.x !== lastDirection)) {
+        if (!!lastDirection && direction !== lastDirection) {
           emit('keyup', KEY_CODES[lastDirection]);
         }
-        lastDirection = info.direction?.x;
+        lastDirection = direction;
         if (lastDirection) {
           emit('keydown', KEY_CODES[lastDirection]);
         }
@@ -94,14 +86,27 @@
       }
     });
 
-    manager.on('end', () => {
-      emit('keyup', KEY_CODES[lastDirection]);
-      lastDirection = undefined;
+    ['end', 'zero'].forEach(event => {
+      joystick.addEventListener(event, () => {
+        emit('keyup', KEY_CODES[lastDirection]);
+        lastDirection = undefined;
+      });
     });
 
     const fireButton = document.querySelector('.fire');
-    fireButton.addEventListener('touchstart', () => emit('keyup', KEY_CODES.fire));
-    fireButton.addEventListener('touchend', () => emit('keydown', KEY_CODES.fire));
+    ['touchstart', 'mousedown'].forEach(event => {
+      fireButton.addEventListener(event, e => {
+        socket.emit('log', '123 ' + e.targetTouches.length);
+        emit('keydown', KEY_CODES.fire);
+      });
+    });
+    ['touchend', 'mouseup'].forEach(event => {
+      fireButton.addEventListener(event, () => emit('keyup', KEY_CODES.fire));
+    });
+
+    window.addEventListener("load", function() {
+      window.scrollTo(0, 1);
+    });
   </script>
 </body>
 </html>

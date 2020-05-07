@@ -12,14 +12,16 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
   socket.on('event', message => {
+    console.log('message', message);
     socket.broadcast.emit('event', message);
   });
 
   socket.on('log', console.log);
 });
 
-http.listen(3000, () => {
-  console.log(`listening on ${getIPAddress()}:3000`);
+const PORT = 3000;
+http.listen(PORT, () => {
+  console.log(`listening on http://${getIPAddress()}:${PORT}`);
 });
 
 function getIPAddress() {
